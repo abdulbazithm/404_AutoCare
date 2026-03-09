@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+
+.booking-section{
+    background-image:url("{% static 'images/car.jpg' %}");
+    background-size:cover;
+    background-position:center;
+    height:85vh;
+    position:relative;
+}
+
+.booking-overlay{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.55);
+}
+
+.booking-card{
+    background:rgba(226, 222, 222, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius:10px;
+    padding:30px;
+    color:white;
+}
+
+</style>
+
+
+<div class="booking-section">
+
+<div class="booking-overlay"></div>
+
+<div class="container h-100 d-flex justify-content-center align-items-center position-relative">
+
+<div class="col-md-7">
+
+<div class="booking-card">
+
+<h2 class="text-center mb-4">Book Airport Car Service</h2>
+
+<form method="POST">
+
+{% csrf_token %}
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+<label>Car Model</label>
+{{ form.car_model }}
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Car Number</label>
+{{ form.car_number }}
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Airport</label>
+{{ form.airport }}
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Service Type</label>
+{{ form.service_type }}
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Parking Date</label>
+{{ form.parking_date }}
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Return Date</label>
+{{ form.return_date }}
+</div>
+
+</div>
+
+<div class="text-center">
+
+<button class="btn btn-primary mt-3 px-5">
+Continue
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

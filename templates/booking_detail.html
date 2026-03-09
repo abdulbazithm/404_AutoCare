@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">Booking Details</h2>
+
+<div class="card p-4 mb-4">
+
+<p><strong>Booking ID:</strong> {{ booking.booking_id }}</p>
+<p><strong>Car:</strong> {{ booking.car_model }}</p>
+<p><strong>Service:</strong> {{ booking.get_service_type_display }}</p>
+<p><strong>Total Cost:</strong> ₹{{ booking.price }}</p>
+<p><strong>Status:</strong> {{ booking.status }}</p>
+
+</div>
+
+
+<h3 class="mb-3">Service Progress</h3>
+
+<div class="card p-4">
+
+<ul class="list-group list-group-flush">
+
+<li class="list-group-item bg-dark text-white">
+Car Received :
+{% if progress.car_received %} ✅ {% else %} ❌ {% endif %}
+</li>
+
+<li class="list-group-item bg-dark text-white">
+Exterior Wash :
+{% if progress.exterior_wash %} ✅ {% else %} ❌ {% endif %}
+</li>
+
+<li class="list-group-item bg-dark text-white">
+Interior Cleaning :
+{% if progress.interior_clean %} ✅ {% else %} ❌ {% endif %}
+</li>
+
+<li class="list-group-item bg-dark text-white">
+Ceramic Coating :
+{% if progress.ceramic_coating %} ✅ {% else %} ❌ {% endif %}
+</li>
+
+<li class="list-group-item bg-dark text-white">
+Ready For Pickup :
+{% if progress.ready_for_pickup %} ✅ {% else %} ❌ {% endif %}
+</li>
+
+</ul>
+
+</div>
+
+{% endblock %}
