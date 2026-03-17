@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+  .stat-card {
+    border-radius: 14px;
+    padding: 24px 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card .icon {
+    font-size: 2.4rem;
+    opacity: 0.25;
+    position: absolute;
+    right: 18px; top: 16px;
+  }
+  .stat-card .label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    opacity: .75;
+  }
+  .stat-card .value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s;
+  }
+
+  .admin-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #888;
+    border-bottom: 2px solid #2a2a2a;
+  }
+  .admin-table td { vertical-align: middle; }
+
+  /* ── Clickable rows ── */
+  .clickable-row {
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .clickable-row:hover {
+    background: #2a2a2a !important;
+  }
+  .clickable-row:hover .row-arrow {
+    opacity: 1;
+    transform: translateX(4px);
+  }
+  .row-arrow {
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+    color: #FFD700;
+    font-size: 16px;
+  }
+
+  /* ── Filter buttons ── */
+  .admin-filter .btn-active-filter {
+    background: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: #fff !important;
+    font-weight: 700;
+  }
+  .filter-btn {
+    font-size: 0.78rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    color: #fff;
+  }
+
+  /* ── Search box ── */
+  .search-box {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    width: 220px;
+  }
+  .search-box::placeholder { color: #666; }
+  .search-box:focus {
+    outline: none;
+    border-color: #FFD700;
+  }
+
+  /* ── Customer avatar ── */
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: #2a2a4a;
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+</style>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h2 class="fw-bold mb-0">Admin Dashboard</h2>
+    <span class="text-muted" style="font-size:.85rem;">Welcome back, {{ user.username }}</span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'admin_customers' %}" class="btn btn-outline-secondary btn-sm">👥 Customers</a>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">🏠 Home</a>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
+      <div class="icon">📋</div>
+      <div class="label">Total Bookings</div>
+      <div class="value">{{ total_bookings }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="background:linear-gradient(135deg,#10b981,#059669)">
+      <div class="icon">💰</div>
+      <div class="label">Total Revenue</div>
+      <div class="value">₹{{ total_revenue }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+      <div class="icon">⏳</div>
+      <div class="label">Pending</div>
+      <div class="value">{{ pending_count }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="background:linear-gradient(135deg,#3b82f6,#2563eb)">
+      <div class="icon">✅</div>
+      <div class="label">Completed</div>
+      <div class="value">{{ completed_count }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bookings table -->
+<div class="card p-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h5 class="mb-0 fw-bold">All Bookings
+      <span class="text-muted fw-normal" style="font-size:13px;" id="rowCount"></span>
+    </h5>
+
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <!-- Search -->
+      <input
+        class="search-box"
+        type="text"
+        id="searchInput"
+        placeholder="🔍  Search customer or car..."
+        oninput="applyFilters()">
+
+      <!-- Filter buttons -->
+      <div class="d-flex gap-1 flex-wrap admin-filter" id="filterBtns">
+        <button class="btn btn-sm filter-btn btn-active-filter" onclick="setFilter('all', this)">All</button>
+        <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="setFilter('pending',    this)">Pending</button>
+        <button class="btn btn-sm btn-outline-info    filter-btn" onclick="setFilter('received',   this)">Received</button>
+        <button class="btn btn-sm btn-outline-warning filter-btn" onclick="setFilter('processing', this)">Processing</button>
+        <button class="btn btn-sm btn-outline-success filter-btn" onclick="setFilter('completed',  this)">Completed</button>
+        <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="setFilter('ready',    this)">Ready</button>
+      </div>
+    </div>
+  </div>
+
+  {% if bookings %}
+  <div class="table-responsive">
+    <table class="table table-hover admin-table" id="bookingsTable">
+      <thead>
+        <tr>
+          <th>Booking ID</th>
+          <th>Customer</th>
+          <th>Car</th>
+          <th>Airport</th>
+          <th>Service</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="bookingTable">
+        {% for b in bookings %}
+        <tr
+          class="clickable-row"
+          data-status="{{ b.status }}"
+          data-search="{{ b.user.username|lower }} {{ b.car_model|lower }} {{ b.car_number|lower }} {{ b.booking_id|lower }}"
+          onclick="window.location='{% url 'admin_booking_detail' b.id %}'">
+
+          <td>
+            <strong style="color:#FFD700; font-family:monospace;">{{ b.booking_id }}</strong>
+          </td>
+
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="avatar">{{ b.user.username|first|upper }}</div>
+              {{ b.user.username }}
+            </div>
+          </td>
+
+          <td>
+            {{ b.car_model }}<br>
+            <small class="text-muted" style="font-family:monospace;">{{ b.car_number }}</small>
+          </td>
+
+          <td style="font-size:13px;">{{ b.get_airport_display }}</td>
+
+          <td style="font-size:13px;">{{ b.get_service_type_display }}</td>
+
+          <td><strong>₹{{ b.price }}</strong></td>
+
+          <td>
+            {% if b.status == 'pending' %}
+              <span class="badge bg-secondary">Pending</span>
+            {% elif b.status == 'received' %}
+              <span class="badge bg-info">Received</span>
+            {% elif b.status == 'processing' %}
+              <span class="badge bg-warning text-dark">Processing</span>
+            {% elif b.status == 'completed' %}
+              <span class="badge bg-success">Completed</span>
+            {% elif b.status == 'ready' %}
+              <span class="badge bg-primary">Ready</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <small class="text-muted">{{ b.created_at|date:"d M Y" }}</small>
+          </td>
+
+          <!-- Arrow appears on hover -->
+          <td class="text-end">
+            <span class="row-arrow">→</span>
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty state after filtering -->
+  <p class="text-muted text-center py-3" id="noResults" style="display:none;">
+    No bookings match your search.
+  </p>
+
+  {% else %}
+    <p class="text-muted text-center py-4">No bookings yet.</p>
+  {% endif %}
+
+</div>
+
+<script>
+  let activeFilter = 'all';
+
+  function setFilter(status, btn) {
+    activeFilter = status;
+
+    document.querySelectorAll('#filterBtns .filter-btn').forEach(b => {
+      b.classList.remove('btn-active-filter');
+    });
+    btn.classList.add('btn-active-filter');
+
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const query   = document.getElementById('searchInput').value.toLowerCase().trim();
+    const rows    = document.querySelectorAll('#bookingTable tr');
+    let   visible = 0;
+
+    rows.forEach(row => {
+      const matchStatus = (activeFilter === 'all' || row.dataset.status === activeFilter);
+      const matchSearch = (query === '' || row.dataset.search.includes(query));
+
+      if (matchStatus && matchSearch) {
+        row.style.display = '';
+        visible++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    // Row count label
+    document.getElementById('rowCount').textContent =
+      visible === rows.length ? '' : `  (${visible} of ${rows.length})`;
+
+    // No results message
+    document.getElementById('noResults').style.display =
+      visible === 0 ? 'block' : 'none';
+  }
+
+  // Init count
+  applyFilters();
+</script>
+
+{% endblock %}

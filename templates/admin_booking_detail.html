@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+  .card { border: 1px solid #2a2a2a; }
+
+  .form-select {
+    background-color: #2a2a2a;
+    color: #fff;
+    border: 1px solid #444;
+  }
+  .form-select option { background: #1c1c1c; }
+
+  .form-check-input {
+    background-color: #2a2a2a;
+    border-color: #555;
+    cursor: pointer;
+  }
+  .form-check-input:checked {
+    background-color: #FFD700;
+    border-color: #FFD700;
+  }
+  .form-check-label {
+    cursor: pointer;
+    font-size: 15px;
+  }
+
+  .step-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .step-row:last-of-type { border-bottom: none; }
+
+  .step-row.not-included {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .not-included-badge {
+    font-size: 10px;
+    background: #333;
+    color: #888;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .status-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .s-pending    { background:#333;    color:#aaa; }
+  .s-received   { background:#0d2f4a; color:#60b4f5; }
+  .s-processing { background:#3a2a00; color:#FFD700; }
+  .s-completed  { background:#0a2e0a; color:#5cb85c; }
+  .s-ready      { background:#1a0a3a; color:#b39ddb; }
+
+  .info-table td { padding: 8px 6px; font-size: 14px; border-bottom: 1px solid #2a2a2a; }
+  .info-table tr:last-child td { border-bottom: none; }
+
+  .save-btn {
+    background: #FFD700;
+    color: #000;
+    font-weight: 700;
+    border: none;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: background 0.2s;
+  }
+  .save-btn:hover { background: #e6c200; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #0a2e0a;
+    color: #5cb85c;
+    border: 1px solid #5cb85c;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    display: none;
+    z-index: 9999;
+  }
+</style>
+
+<!-- Toast notification -->
+<div id="toast">✅ Changes saved successfully!</div>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary btn-sm mb-2">← Dashboard</a>
+    <h4 class="fw-bold mb-0">
+      Booking
+      <span style="color:#FFD700; font-family:monospace;">{{ booking.booking_id }}</span>
+    </h4>
+    <span class="status-badge s-{{ booking.status }} mt-1 d-inline-block">
+      {{ booking.get_status_display }}
+    </span>
+  </div>
+  <div class="text-muted" style="font-size:13px;">
+    Customer: <strong style="color:#fff;">{{ booking.user.username }}</strong><br>
+    Booked: {{ booking.created_at|date:"d M Y" }}
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── LEFT: Booking Info ─────────────────────────────── -->
+  <div class="col-md-5">
+    <div class="card p-4 h-100">
+      <h5 class="fw-bold mb-3">📋 Booking Info</h5>
+      <table class="info-table w-100">
+        <tr>
+          <td class="text-muted">Car</td>
+          <td><strong>{{ booking.car_model }}</strong></td>
+        </tr>
+        <tr>
+          <td class="text-muted">Reg. No</td>
+          <td style="font-family:monospace;">{{ booking.car_number }}</td>
+        </tr>
+        <tr>
+          <td class="text-muted">Airport</td>
+          <td>{{ booking.get_airport_display }}</td>
+        </tr>
+        <tr>
+          <td class="text-muted">Service</td>
+          <td>{{ booking.get_service_type_display }}</td>
+        </tr>
+        <tr>
+          <td class="text-muted">Parking</td>
+          <td>{{ booking.parking_date }}</td>
+        </tr>
+        <tr>
+          <td class="text-muted">Return</td>
+          <td>{{ booking.return_date }}</td>
+        </tr>
+        <tr>
+          <td class="text-muted">Price</td>
+          <td><strong style="color:#FFD700; font-size:18px;">₹{{ booking.price }}</strong></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Status + Progress form ─────────────────── -->
+  <div class="col-md-7">
+    <form method="POST" id="adminForm">
+      {% csrf_token %}
+
+      <!-- Status -->
+      <div class="card p-4 mb-3">
+        <h5 class="fw-bold mb-3">🔄 Booking Status</h5>
+        <select name="status" class="form-select" id="statusSelect">
+          {% for value, label in statuses %}
+          <option value="{{ value }}" {% if booking.status == value %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Progress checkboxes -->
+      <div class="card p-4 mb-3">
+        <h5 class="fw-bold mb-1">🔧 Service Progress</h5>
+        <p class="text-muted mb-3" style="font-size:12px;">
+          Tick steps as they are completed — greyed steps are not part of this service.
+        </p>
+
+        <!-- Car Received — always available -->
+        <div class="step-row">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox"
+              name="car_received" id="car_received"
+              {% if progress.car_received %}checked{% endif %}
+              onchange="autoStatus()">
+            <label class="form-check-label" for="car_received">Car Received</label>
+          </div>
+          {% if progress.car_received %}
+            <span class="status-badge s-completed">Done</span>
+          {% else %}
+            <span class="status-badge s-pending">Pending</span>
+          {% endif %}
+        </div>
+
+        <!-- Exterior Wash -->
+        <div class="step-row {% if booking.service_type == 'parking_only' %}not-included{% endif %}">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox"
+              name="exterior_wash" id="exterior_wash"
+              {% if progress.exterior_wash %}checked{% endif %}
+              onchange="autoStatus()">
+            <label class="form-check-label" for="exterior_wash">Exterior Wash</label>
+          </div>
+          {% if booking.service_type == 'parking_only' %}
+            <span class="not-included-badge">Not included</span>
+          {% elif progress.exterior_wash %}
+            <span class="status-badge s-completed">Done</span>
+          {% else %}
+            <span class="status-badge s-pending">Pending</span>
+          {% endif %}
+        </div>
+
+        <!-- Interior Cleaning -->
+        <div class="step-row {% if booking.service_type not in 'parking_interior,parking_ceramic' %}not-included{% endif %}">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox"
+              name="interior_clean" id="interior_clean"
+              {% if progress.interior_clean %}checked{% endif %}
+              onchange="autoStatus()">
+            <label class="form-check-label" for="interior_clean">Interior Cleaning</label>
+          </div>
+          {% if booking.service_type != 'parking_interior' and booking.service_type != 'parking_ceramic' %}
+            <span class="not-included-badge">Not included</span>
+          {% elif progress.interior_clean %}
+            <span class="status-badge s-completed">Done</span>
+          {% else %}
+            <span class="status-badge s-pending">Pending</span>
+          {% endif %}
+        </div>
+
+        <!-- Ceramic Coating -->
+        <div class="step-row {% if booking.service_type != 'parking_ceramic' %}not-included{% endif %}">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox"
+              name="ceramic_coating" id="ceramic_coating"
+              {% if progress.ceramic_coating %}checked{% endif %}
+              onchange="autoStatus()">
+            <label class="form-check-label" for="ceramic_coating">Ceramic Coating</label>
+          </div>
+          {% if booking.service_type != 'parking_ceramic' %}
+            <span class="not-included-badge">Not included</span>
+          {% elif progress.ceramic_coating %}
+            <span class="status-badge s-completed">Done</span>
+          {% else %}
+            <span class="status-badge s-pending">Pending</span>
+          {% endif %}
+        </div>
+
+        <!-- Ready for Pickup -->
+        <div class="step-row">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox"
+              name="ready_for_pickup" id="ready_for_pickup"
+              {% if progress.ready_for_pickup %}checked{% endif %}
+              onchange="autoStatus()">
+            <label class="form-check-label" for="ready_for_pickup">Ready for Pickup</label>
+          </div>
+          {% if progress.ready_for_pickup %}
+            <span class="status-badge s-ready">Ready</span>
+          {% else %}
+            <span class="status-badge s-pending">Pending</span>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <button type="submit" class="save-btn">💾 Save Changes</button>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+  // Auto-update status dropdown based on checkbox state
+  function autoStatus() {
+    const received  = document.getElementById('car_received').checked;
+    const wash      = document.getElementById('exterior_wash').checked;
+    const interior  = document.getElementById('interior_clean').checked;
+    const ceramic   = document.getElementById('ceramic_coating').checked;
+    const pickup    = document.getElementById('ready_for_pickup').checked;
+    const select    = document.getElementById('statusSelect');
+
+    // Determine service type from which steps are enabled
+    const hasWash     = !document.querySelector('[name="exterior_wash"]').closest('.step-row').classList.contains('not-included');
+    const hasInterior = !document.querySelector('[name="interior_clean"]').closest('.step-row').classList.contains('not-included');
+    const hasCeramic  = !document.querySelector('[name="ceramic_coating"]').closest('.step-row').classList.contains('not-included');
+
+    if (pickup) {
+      select.value = 'ready';
+    } else if (
+      (hasWash     && wash)     ||
+      (hasInterior && interior) ||
+      (hasCeramic  && ceramic)
+    ) {
+      select.value = 'completed';
+    } else if (received) {
+      select.value = 'processing';
+    } else {
+      select.value = 'pending';
+    }
+  }
+
+  // Show toast on page load if just saved (detect via URL param)
+  window.onload = function () {
+    if (window.location.search.includes('saved=1')) {
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+      // Clean the URL
+      history.replaceState({}, '', window.location.pathname);
+    }
+  }
+</script>
+
+{% endblock %}

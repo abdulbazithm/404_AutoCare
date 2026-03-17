@@ -1,53 +1,247 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
-<h2 class="mb-4">Booking Details</h2>
+<style>
+  .bd-back {
+    font-size: 13px;
+    color: #aaa;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+    padding: 6px 14px;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    background: #1c1c1c;
+  }
+  .bd-back:hover { background: #222; color: #FFD700; }
 
-<div class="card p-4 mb-4">
+  .bd-card {
+    background: #1c1c1c;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 1.4rem;
+  }
+  .bd-card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #666;
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+  .bd-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid #222;
+    gap: 12px;
+  }
+  .bd-row:last-child { border-bottom: none; }
+  .bd-key  { font-size: 13px; color: #888; }
+  .bd-val  { font-size: 13px; font-weight: 600; color: #fff; text-align: right; }
+  .bd-mono { font-family: monospace; font-size: 14px; color: #FFD700; }
 
-<p><strong>Booking ID:</strong> {{ booking.booking_id }}</p>
-<p><strong>Car:</strong> {{ booking.car_model }}</p>
-<p><strong>Service:</strong> {{ booking.get_service_type_display }}</p>
-<p><strong>Total Cost:</strong> ₹{{ booking.price }}</p>
-<p><strong>Status:</strong> {{ booking.status }}</p>
+  /* Status badges */
+  .badge-pending    { background:#333;     color:#aaa;    padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-received   { background:#0d2f4a;  color:#60b4f5; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-processing { background:#3a2a00;  color:#FFD700; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-completed  { background:#0a2e0a;  color:#5cb85c; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-ready      { background:#1a0a3a;  color:#b39ddb; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+
+  /* Progress items */
+  .pi {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #222;
+  }
+  .pi:last-child { border-bottom: none; }
+  .pi-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  .pi-dot.done    { background: #0a2e0a; color: #5cb85c; }
+  .pi-dot.pending { background: #222; color: #555; border: 1px solid #333; }
+  .pi-dot.na      { background: #1a1a1a; color: #444; }
+  .pi-label       { font-size: 14px; color: #ddd; flex: 1; }
+  .pi-tag         { font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600; }
+  .pi-tag.done    { background: #0a2e0a; color: #5cb85c; }
+  .pi-tag.pending { background: #222; color: #666; }
+  .pi-tag.na      { background: #1a1a1a; color: #444; font-style: italic; }
+
+  .price-block { padding-top: 14px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .price-num   { font-size: 24px; font-weight: 700; color: #FFD700; }
+  .price-lbl   { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; }
+</style>
+
+
+<a class="bd-back" href="{% url 'my_bookings' %}">&#8592; My Bookings</a>
+
+<h2 class="mb-1 fw-bold">Booking Details</h2>
+<p class="text-muted mb-4" style="font-size:.88rem;">Your service summary and live progress</p>
+
+<div class="row g-4">
+
+  <!-- ── Booking Info ─────────────────────────────────────── -->
+  <div class="col-md-6">
+    <div class="bd-card">
+      <p class="bd-card-label">Booking info</p>
+
+      <div class="bd-row">
+        <span class="bd-key">Booking ID</span>
+        <span class="bd-mono">{{ booking.booking_id }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Car</span>
+        <span class="bd-val">{{ booking.car_model }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Reg. number</span>
+        <span class="bd-val" style="font-family:monospace;">{{ booking.car_number }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Airport</span>
+        <span class="bd-val">{{ booking.get_airport_display }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Service</span>
+        <span class="bd-val">{{ booking.get_service_type_display }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Parking date</span>
+        <span class="bd-val">{{ booking.parking_date }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Return date</span>
+        <span class="bd-val">{{ booking.return_date }}</span>
+      </div>
+      <div class="bd-row">
+        <span class="bd-key">Booked on</span>
+        <span class="bd-val">{{ booking.created_at|date:"d M Y" }}</span>
+      </div>
+
+      <!-- Price + status -->
+      <div class="price-block">
+        <div>
+          <p class="price-lbl">Total cost</p>
+          <span class="price-num">&#8377;{{ booking.price }}</span>
+        </div>
+        {% if booking.status == 'pending' %}
+          <span class="badge-pending">Pending</span>
+        {% elif booking.status == 'received' %}
+          <span class="badge-received">Car Received</span>
+        {% elif booking.status == 'processing' %}
+          <span class="badge-processing">Processing</span>
+        {% elif booking.status == 'completed' %}
+          <span class="badge-completed">Completed</span>
+        {% elif booking.status == 'ready' %}
+          <span class="badge-ready">Ready for Pickup</span>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Service Progress ─────────────────────────────────── -->
+  <div class="col-md-6">
+    <div class="bd-card">
+      <p class="bd-card-label">Service progress</p>
+
+      <!-- Car Received — always relevant -->
+      <div class="pi">
+        <div class="pi-dot {% if progress.car_received %}done{% else %}pending{% endif %}">
+          {% if progress.car_received %}✓{% else %}○{% endif %}
+        </div>
+        <span class="pi-label">Car received</span>
+        <span class="pi-tag {% if progress.car_received %}done{% else %}pending{% endif %}">
+          {% if progress.car_received %}Done{% else %}Pending{% endif %}
+        </span>
+      </div>
+
+      <!-- Exterior Wash — parking_wash / interior / ceramic -->
+      {% if booking.service_type != 'parking_only' %}
+      <div class="pi">
+        <div class="pi-dot {% if progress.exterior_wash %}done{% else %}pending{% endif %}">
+          {% if progress.exterior_wash %}✓{% else %}○{% endif %}
+        </div>
+        <span class="pi-label">Exterior wash</span>
+        <span class="pi-tag {% if progress.exterior_wash %}done{% else %}pending{% endif %}">
+          {% if progress.exterior_wash %}Done{% else %}Pending{% endif %}
+        </span>
+      </div>
+      {% else %}
+      <div class="pi">
+        <div class="pi-dot na">—</div>
+        <span class="pi-label">Exterior wash</span>
+        <span class="pi-tag na">Not included</span>
+      </div>
+      {% endif %}
+
+      <!-- Interior Clean — only interior / ceramic -->
+      {% if booking.service_type == 'parking_interior' or booking.service_type == 'parking_ceramic' %}
+      <div class="pi">
+        <div class="pi-dot {% if progress.interior_clean %}done{% else %}pending{% endif %}">
+          {% if progress.interior_clean %}✓{% else %}○{% endif %}
+        </div>
+        <span class="pi-label">Interior cleaning</span>
+        <span class="pi-tag {% if progress.interior_clean %}done{% else %}pending{% endif %}">
+          {% if progress.interior_clean %}Done{% else %}Pending{% endif %}
+        </span>
+      </div>
+      {% else %}
+      <div class="pi">
+        <div class="pi-dot na">—</div>
+        <span class="pi-label">Interior cleaning</span>
+        <span class="pi-tag na">Not included</span>
+      </div>
+      {% endif %}
+
+      <!-- Ceramic Coating — only ceramic -->
+      {% if booking.service_type == 'parking_ceramic' %}
+      <div class="pi">
+        <div class="pi-dot {% if progress.ceramic_coating %}done{% else %}pending{% endif %}">
+          {% if progress.ceramic_coating %}✓{% else %}○{% endif %}
+        </div>
+        <span class="pi-label">Ceramic coating</span>
+        <span class="pi-tag {% if progress.ceramic_coating %}done{% else %}pending{% endif %}">
+          {% if progress.ceramic_coating %}Done{% else %}Pending{% endif %}
+        </span>
+      </div>
+      {% else %}
+      <div class="pi">
+        <div class="pi-dot na">—</div>
+        <span class="pi-label">Ceramic coating</span>
+        <span class="pi-tag na">Not included</span>
+      </div>
+      {% endif %}
+
+      <!-- Ready for pickup — always relevant -->
+      <div class="pi">
+        <div class="pi-dot {% if progress.ready_for_pickup %}done{% else %}pending{% endif %}">
+          {% if progress.ready_for_pickup %}✓{% else %}○{% endif %}
+        </div>
+        <span class="pi-label">Ready for pickup</span>
+        <span class="pi-tag {% if progress.ready_for_pickup %}done{% else %}pending{% endif %}">
+          {% if progress.ready_for_pickup %}Done{% else %}Pending{% endif %}
+        </span>
+      </div>
+
+    </div>
+  </div>
 
 </div>
 
-
-<h3 class="mb-3">Service Progress</h3>
-
-<div class="card p-4">
-
-<ul class="list-group list-group-flush">
-
-<li class="list-group-item bg-dark text-white">
-Car Received :
-{% if progress.car_received %} ✅ {% else %} ❌ {% endif %}
-</li>
-
-<li class="list-group-item bg-dark text-white">
-Exterior Wash :
-{% if progress.exterior_wash %} ✅ {% else %} ❌ {% endif %}
-</li>
-
-<li class="list-group-item bg-dark text-white">
-Interior Cleaning :
-{% if progress.interior_clean %} ✅ {% else %} ❌ {% endif %}
-</li>
-
-<li class="list-group-item bg-dark text-white">
-Ceramic Coating :
-{% if progress.ceramic_coating %} ✅ {% else %} ❌ {% endif %}
-</li>
-
-<li class="list-group-item bg-dark text-white">
-Ready For Pickup :
-{% if progress.ready_for_pickup %} ✅ {% else %} ❌ {% endif %}
-</li>
-
-</ul>
-
+<!-- Actions -->
+<div class="mt-4 d-flex gap-3 flex-wrap">
+  <a href="{% url 'my_bookings' %}" class="btn btn-outline-secondary">&#8592; Back to Bookings</a>
+  <a href="{% url 'book_service' %}" class="btn btn-primary">Book Another Service</a>
 </div>
 
 {% endblock %}
